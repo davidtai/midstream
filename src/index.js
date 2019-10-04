@@ -21,6 +21,9 @@ class Source {
       __waitingValues: {
         value: {},
       },
+      __hooks: {
+        value: {},
+      },
     })
 
     if (isObject(this.__middleware)) {
@@ -33,6 +36,9 @@ class Source {
       }
 
       for (const prop of Object.keys(this.__defaults)) {
+        if (!this.__middleware[prop]) {
+          this.prop(prop)
+        }
         this[prop] = this.__defaults[prop]
       }
     } else {
@@ -198,17 +204,17 @@ class Source {
       this[prop] = initial
     }
 
-    return [() => this[prop], (value) => this[prop] = value]
+    return this.__hooks[prop] = [() => this[prop], (value) => this[prop] = value]
   }
 
   // hook gets a React style getter/setter pair for a prop on this
-  // object, returns empty array if prop does not exist.
+  // object, returns undefined if prop does not exist.
   hook(prop) {
     if (!this.hasOwnProperty(prop)) {
       throw new Error(`source.hook: prop ''${prop}' does not exist`)
     }
 
-    return [() => this[prop], (value) => this[prop] = value]
+    return this.__hooks[prop]
   }
 
   // returns all the values on source without any member variables
@@ -221,6 +227,7 @@ const midstream = (middleware, defaults, dst, err) => {
     src,
     dst: src.__dst,
     err: src.__err,
+    hooks: src.__hooks,
   }
 }
 

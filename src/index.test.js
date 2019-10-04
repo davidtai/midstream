@@ -21,11 +21,12 @@ const dst = { a: 1, b: 2, c: 3 }
 
 describe('midstream', () => {
   it('should construct', () => {
-    let { src, err, dst } = midstream(middleware, defaults)
+    let { src, err, dst, hooks } = midstream(middleware, defaults)
 
     expect(src).toEqual(defaults)
     expect(err).toEqual({})
     expect(dst).toEqual({})
+    expect(Object.keys(hooks).length).toEqual(3)
   });
 
   it('should runAll and populate dst', async () => {
@@ -56,6 +57,7 @@ describe('midstream', () => {
     )
 
     src.a = 4
+    src.b = 0
     src.c = 5
 
     let ret
@@ -70,7 +72,11 @@ describe('midstream', () => {
       a: new Error('a not 1'),
       c: new Error('c not 3'),
     })
-    expect(dst).toEqual(dst)
+    expect(dst).toEqual({
+      a: 1,
+      b: 0,
+      c: 3,
+    })
   });
 
   it('should log error eventually', async () => {
@@ -84,6 +90,7 @@ describe('midstream', () => {
     )
 
     src.a = 4
+    src.b = 0
     src.c = 5
 
     await new Promise((r) => {
@@ -92,7 +99,11 @@ describe('midstream', () => {
           a: new Error('a not 1'),
           c: new Error('c not 3'),
         })
-        expect(dst).toEqual(dst)
+        expect(dst).toEqual({
+          a: 1,
+          b: 0,
+          c: 3,
+        })
         r()
       })
     })
