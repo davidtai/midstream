@@ -137,6 +137,7 @@ class Source {
       if (!ignoreErrors) {
         throw e
       }
+      return e
     }
   }
 
@@ -178,6 +179,8 @@ class Source {
 
     this.__middleware[prop] = middleware
 
+    let p
+
     Object.defineProperties(this, {
       [`_${prop}`]: {
         value: undefined,
@@ -193,7 +196,7 @@ class Source {
           }
 
           this[`_${prop}`] = x
-          this.run(prop, x, true)
+          p = this.run(prop, x, true)
         },
         // act like a normal property
         enumerable: true,
@@ -204,7 +207,10 @@ class Source {
       this[prop] = initial
     }
 
-    return this.__hooks[prop] = [() => this[prop], (value) => this[prop] = value]
+    return this.__hooks[prop] = [() => this[prop], async (value) => {
+      this[prop] = value
+      return p
+    }, () => this.__dst[prop]]
   }
 
   // hook gets a React style getter/setter pair for a prop on this

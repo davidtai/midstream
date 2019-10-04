@@ -108,4 +108,30 @@ describe('midstream', () => {
       })
     })
   });
+
+  it('should get react style hooks', async () => {
+    const _defaults = Object.assign({}, defaults, {
+      c: 3,
+    })
+
+    let { src, err, dst } = midstream(
+      middleware,
+      _defaults,
+    )
+
+    let [c, setC, dstC] = src.hook('c')
+
+    expect(c()).toEqual(3)
+
+    const ret = await setC(4)
+    expect(ret).toEqual(new Error('c not 3'))
+
+    expect(c()).toEqual(4)
+    expect(dstC()).toEqual(3)
+
+    expect(err).toEqual({
+      c: new Error('c not 3'),
+    })
+    expect(dst).toEqual(dst)
+  });
 });
