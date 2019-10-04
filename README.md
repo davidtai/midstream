@@ -1,6 +1,6 @@
 # midstream
 
-> A fully reactive middleware streaming library
+> A fully reactive middleware library good for forms or data transforms
 
 ## Running tests
 
