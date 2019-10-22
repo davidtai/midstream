@@ -25,7 +25,7 @@ const dst = { a: 1, b: 2, c: 3 }
 
 describe('midstream', () => {
   it('should construct', () => {
-    let { src, err, dst, hooks } = midstream(middleware, defaults)
+    let { src, err, dst, hooks } = midstream(middleware, {defaults})
 
     expect(src).toEqual(defaults)
     expect(err).toEqual({})
@@ -40,7 +40,7 @@ describe('midstream', () => {
 
     let { src, err, dst } = midstream(
       middleware,
-      _defaults,
+      { defaults: _defaults },
     )
 
     await src.runAll()
@@ -57,7 +57,7 @@ describe('midstream', () => {
 
     let { src, err, dst } = midstream(
       middleware,
-      _defaults,
+      { defaults: _defaults },
     )
 
     await src.runSettle()
@@ -74,7 +74,7 @@ describe('midstream', () => {
 
     let { src, err, dst } = midstream(
       middleware,
-      _defaults,
+      { defaults: _defaults },
     )
 
     src.a = 4
@@ -112,7 +112,7 @@ describe('midstream', () => {
 
     let { src, err, dst } = midstream(
       middleware,
-      _defaults,
+      { defaults: _defaults },
     )
 
     src.a = 4
@@ -145,7 +145,7 @@ describe('midstream', () => {
 
     let { src, err, dst } = midstream(
       middleware,
-      _defaults,
+      { defaults: _defaults },
     )
 
     src.a = 4
@@ -175,7 +175,7 @@ describe('midstream', () => {
 
     let { src, err, dst } = midstream(
       middleware,
-      _defaults,
+      { defaults: _defaults },
     )
 
     let [c, setC, dstC] = src.hook('c')
@@ -204,7 +204,7 @@ describe('midstream', () => {
 
     let { src, err, dst } = midstream(
       middleware,
-      defaults,
+      { defaults },
     )
 
     src.a = 2

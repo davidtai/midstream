@@ -265,14 +265,18 @@ class Source {
   // returns all the values on source without any member variables
 }
 
-const midstream = (middleware, defaults, dst, err) => {
-  const src = new Source(middleware, defaults, dst, err)
+const midstream = (middleware, opts = {}) => {
+  const src = new Source(middleware, opts.defaults, opts.dst || opts.destination, opts.err || opts.errors)
 
   return {
     src,
     dst: src.__dst,
     err: src.__err,
     hooks: src.__hooks,
+
+    source: src,
+    destination: src.__dst,
+    errors: src.__err,
   }
 }
 

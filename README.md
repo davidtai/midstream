@@ -15,7 +15,7 @@ Import midstream into your application:
 import midstream from 'midstream'
 ```
 
-Create a source, destination, and some error throwing middleware.  Values set to source will populate destination if all 
+Create a source, destination, and some error throwing middleware.  Values set to source will populate destination if all
 ```js
 const defaults = { a: 1, b: 2 }
 
@@ -46,7 +46,7 @@ const dst = { a: 1, b: 2, c: 3 }
 
 let { src, err, dst } = midstream(
   middleware,
-  _defaults,
+  { defaults },
 )
 
 // set values and wait for asynchronous result, even synchronous middleware completes on the next tick
@@ -55,7 +55,7 @@ src.a = 4
 src.b = 0
 src.c = 5
 
-// optionally await src.run('a', 'optional value overwrite'), src.runAll(), or src.runSettle().  
+// optionally await src.run('a', 'optional value overwrite'), src.runAll(), or src.runSettle().
 // src.test is like run but will not set any destination values even without error
 let ret = await src.runSettle()
 
@@ -79,7 +79,7 @@ console.log(dst)
 //   c: 3,
 // }
 
-console.log(src) 
+console.log(src)
 // {
 //   a: 4,
 //   b: 0,
