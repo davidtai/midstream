@@ -123,6 +123,11 @@ class Source {
       return await src.__err(prop, err)
     }
 
+    if (err === undefined) {
+      delete src.__err[prop]
+      return undefined
+    }
+
     return src.__err[prop] = err
   }
 
@@ -132,11 +137,11 @@ class Source {
     try {
       this.__waitingValues[prop] = value === undefined ? this[prop] : value
 
-      delete this.__err[prop]
-
       this.__running[prop] = true
       let ret
 
+      // just do this at the same time, somewhat of a hack
+      Source.updateErr(this, prop, undefined)
       while (this.__waitingValues.hasOwnProperty(prop)) {
 
         const v = this.__waitingValues[prop]
@@ -145,17 +150,20 @@ class Source {
         delete this.__waitingValues[prop]
         const y = await p
 
-        this.__running[prop] = false
         ret = await Source.updateDst(this, prop, y)
       }
+
+      this.__running[prop] = false
       return ret
     } catch (err) {
       this.__running[prop] = false
       const e = await Source.updateErr(this, prop, err)
-      if (!ignoreErrors) {
-        throw e
+
+      if (ignoreErrors) {
+        return e
       }
-      return e
+
+      throw e
     }
   }
 
