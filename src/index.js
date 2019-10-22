@@ -1,5 +1,23 @@
 import { isString, isObject, isFunction } from './utils'
 
+// allSettled Polyfill
+if (!Promise.allSettled) {
+  Promise.allSettled = promises =>
+    Promise.all(
+      promises.map((promise, i) =>
+        promise
+          .then(value => ({
+            status: 'fulfilled',
+            value,
+          }))
+          .catch(reason => ({
+            status: 'rejected',
+            reason,
+          }))
+      )
+    );
+}
+
 class Source {
   constructor(middleware, defaults, dst, err) {
     Object.defineProperties(this, {
@@ -152,6 +170,27 @@ class Source {
     }
 
     await Promise.all(ps)
+    return result
+  }
+
+  // runSettle calls run for every prop asynchronously and waits until they are
+  // finished to return the results of each execution whether valid or error in
+  // the form of Promise.settleAll except a map.
+  async runSettle() {
+    let ps = []
+    let props = Object.keys(this)
+
+    for (const prop of props) {
+      ps.push(this.run(prop))
+    }
+
+    let ret = await Promise.allSettled(ps)
+
+    let result = {}
+    for (const k in props) {
+      result[props[k]] = ret[k]
+    }
+
     return result
   }
 

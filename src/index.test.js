@@ -9,12 +9,16 @@ const middleware = {
 
     throw new Error('a not 1')
   },
-  c: (x) => {
+  c: async (x) => {
     if (x === 3) {
       return x
     }
 
-    throw new Error('c not 3')
+    await new Promise ((res, rej) => {
+      requestAnimationFrame(() => {
+        rej(new Error('c not 3'))
+      })
+    })
   },
 }
 const dst = { a: 1, b: 2, c: 3 }
@@ -46,7 +50,24 @@ describe('midstream', () => {
     expect(dst).toEqual(dst)
   });
 
-  it('should throw an error when runAll runs an erroring middleware', async () => {
+  it('should runSettle and populate dst', async () => {
+    const _defaults = Object.assign({}, defaults, {
+      c: 3,
+    })
+
+    let { src, err, dst } = midstream(
+      middleware,
+      _defaults,
+    )
+
+    await src.runSettle()
+
+    expect(src).toEqual(_defaults)
+    expect(err).toEqual({})
+    expect(dst).toEqual(dst)
+  });
+
+  it('should throw the first error when runAll runs an erroring middleware', async () => {
     const _defaults = Object.assign({}, defaults, {
       c: 3,
     })
@@ -68,6 +89,39 @@ describe('midstream', () => {
     }
 
     expect(ret).toEqual(new Error('a not 1'))
+    // all synchronous errors
+    expect(err).toEqual({
+      a: new Error('a not 1'),
+    })
+    expect(dst).toEqual({
+      a: 1,
+      b: 0,
+      c: 3,
+    })
+  });
+
+  it('should not throw an error when runSettle runs an erroring middleware, should return all promise results', async () => {
+    const _defaults = Object.assign({}, defaults, {
+      c: 3,
+    })
+
+    let { src, err, dst } = midstream(
+      middleware,
+      _defaults,
+    )
+
+    src.a = 4
+    src.b = 0
+    src.c = 5
+
+    let ret = await src.runSettle()
+
+    expect(ret).toEqual({
+      a: {reason: new Error('a not 1'), status: 'rejected'},
+      b: {status: 'fulfilled', value: 0},
+      c: {reason: new Error('c not 3'), status: 'rejected'},
+    })
+    // all errors
     expect(err).toEqual({
       a: new Error('a not 1'),
       c: new Error('c not 3'),
