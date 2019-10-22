@@ -1,4 +1,4 @@
-import midstream from './index.js';
+import midstream from './index.js'
 
 const defaults = { a: 1, b: 2 }
 const middleware = {
@@ -31,7 +31,7 @@ describe('midstream', () => {
     expect(err).toEqual({})
     expect(dst).toEqual({})
     expect(Object.keys(hooks).length).toEqual(3)
-  });
+  })
 
   it('should runAll and populate dst', async () => {
     const _defaults = Object.assign({}, defaults, {
@@ -48,7 +48,7 @@ describe('midstream', () => {
     expect(src).toEqual(_defaults)
     expect(err).toEqual({})
     expect(dst).toEqual(dst)
-  });
+  })
 
   it('should runSettle and populate dst', async () => {
     const _defaults = Object.assign({}, defaults, {
@@ -65,7 +65,7 @@ describe('midstream', () => {
     expect(src).toEqual(_defaults)
     expect(err).toEqual({})
     expect(dst).toEqual(dst)
-  });
+  })
 
   it('should throw the first error when runAll runs an erroring middleware', async () => {
     const _defaults = Object.assign({}, defaults, {
@@ -98,7 +98,12 @@ describe('midstream', () => {
       b: 0,
       c: 3,
     })
-  });
+    expect(src).toEqual({
+      a: 4,
+      b: 0,
+      c: 5,
+    })
+  })
 
   it('should not throw an error when runSettle runs an erroring middleware, should return all promise results', async () => {
     const _defaults = Object.assign({}, defaults, {
@@ -131,7 +136,7 @@ describe('midstream', () => {
       b: 0,
       c: 3,
     })
-  });
+  })
 
   it('should log error eventually', async () => {
     const _defaults = Object.assign({}, defaults, {
@@ -161,7 +166,7 @@ describe('midstream', () => {
         r()
       })
     })
-  });
+  })
 
   it('should get react style hooks', async () => {
     const _defaults = Object.assign({}, defaults, {
@@ -187,5 +192,51 @@ describe('midstream', () => {
       c: new Error('c not 3'),
     })
     expect(dst).toEqual(dst)
-  });
-});
+  })
+
+  it('should allow for overwriting of value using return', async () => {
+    let defaults = { a: 1 }
+    let middleware = {
+      a: (x) => {
+        return '' + x
+      },
+    }
+
+    let { src, err, dst } = midstream(
+      middleware,
+      defaults,
+    )
+
+    src.a = 2
+
+    let ret = await src.runSettle()
+
+    // all errors
+    expect(err).toEqual({})
+    expect(dst).toEqual({
+      a: '2',
+    })
+  })
+
+  it('should be able to await run', async () => {
+    let defaults = { a: 1 }
+    let middleware = {
+      a: (x) => {
+        return '' + x
+      },
+    }
+
+    let { src, err, dst } = midstream(
+      middleware,
+      defaults,
+    )
+
+    await src.run('a', 2)
+
+    // all errors
+    expect(err).toEqual({})
+    expect(dst).toEqual({
+      a: '2',
+    })
+  })
+})
