@@ -239,4 +239,30 @@ describe('midstream', () => {
       a: '2',
     })
   })
+
+  it('should be able to run a chain', async () => {
+    let defaults = { a: 1 }
+    let middleware = {
+      a: [
+        (x) => {
+          return x + 1
+        }, (x) => {
+          return '' + x
+        }
+      ],
+    }
+
+    let { src, err, dst } = midstream(
+      middleware,
+      defaults,
+    )
+
+    await src.run('a', 2)
+
+    // all errors
+    expect(err).toEqual({})
+    expect(dst).toEqual({
+      a: '3',
+    })
+  })
 })

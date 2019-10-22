@@ -103,7 +103,7 @@ class Source {
     }
 
     if (isFunction(src.__dst)) {
-      return await src.__dst({ [prop]: value })
+      return await src.__dst(prop, value)
     }
 
     return src.__dst[prop] = value
@@ -120,7 +120,7 @@ class Source {
     }
 
     if (isFunction(src.__err)) {
-      return await src.__err({ [prop]: err })
+      return await src.__err(prop, err)
     }
 
     return src.__err[prop] = err
