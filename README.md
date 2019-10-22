@@ -16,7 +16,7 @@ import midstream from 'midstream'
 ```
 
 Create a source, destination, and some error throwing middleware.  Values set to source will populate destination if all 
-```
+```js
 const defaults = { a: 1, b: 2 }
 
 // can take synchronous or asynchronous functions
