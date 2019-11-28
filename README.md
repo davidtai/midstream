@@ -15,7 +15,7 @@ Import midstream into your application:
 import midstream from 'midstream'
 ```
 
-###V2 API
+### V2 API
 ```javascript
 // Import midstream
 import midstream from 'midstream'
@@ -204,7 +204,7 @@ const useMidstream = (config) => {
 }
 ```
 
-###Legacy API:
+### Legacy API:
 Create a source, destination, and some error throwing middleware.  Values set to source will populate destination if all
 ```js
 const defaults = { a: 1, b: 2 }
