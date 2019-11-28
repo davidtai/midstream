@@ -147,23 +147,32 @@ class Source {
   async waitAll() {
     let ps, res
     do {
+      res = undefined
       ps = []
       for (let prop in this.__running) {
         ps.push(this.__running[prop])
       }
 
-      res = await Promise.all(ps)
-    } while(res.length > 0)
+      try {
+        res = await Promise.all(ps)
+      } catch (e) {
+        return e
+      }
+    } while(res && res.length > 0)
   }
 
   // wait for a specific middleware to complete the most current run
   async wait(prop) {
     if (!prop) {
-      return this.waitAll()
+      return await this.waitAll()
     }
 
     while(this.__running[prop]) {
-      await this.__running[prop]
+      try {
+        await this.__running[prop]
+      } catch (e) {
+        return e
+      }
     }
   }
 
@@ -171,7 +180,7 @@ class Source {
   // Use rethrow to rethrow the error. Returns the value assigned or error.
   async run(prop, value, ignoreErrors) {
     if (!prop) {
-      return this.runAll()
+      return await this.runAll()
     }
 
     try {
@@ -217,7 +226,11 @@ class Source {
       ps.push(this.run(prop).then((x) => result[prop] = x ))
     }
 
-    await Promise.all(ps)
+    try {
+      await Promise.all(ps)
+    } catch (e) {
+      return e
+    }
     return result
   }
 
@@ -294,7 +307,7 @@ class Source {
       this[prop] = initial
     }
 
-    return this.__hooks[prop] = [() => this[prop], async (value) => {
+    return this.__hooks[prop] = [() => this[prop], (value) => {
       this[prop] = value
       return p
     }, () => this.__dst[prop]]
@@ -321,10 +334,10 @@ const midstream = (middleware, opts = {}) => {
     dst: src.__dst,
     err: src.__err,
     hooks: src.__hooks,
-    runAll: () => src.runAll.apply(src, arguments),
-    run: () => src.run.apply(src, arguments),
-    waitAll: () => src.waitAll.apply(src, arguments),
-    wait: () => src.wait.apply(src, arguments),
+    runAll:  function() { return src.runAll.apply(src, arguments) },
+    run:     function() { return src.run.apply(src, arguments) },
+    waitAll: function() { return src.waitAll.apply(src, arguments) },
+    wait:    function() { return src.wait.apply(src,arguments) },
     source: src,
     destination: src.__dst,
     errors: src.__err,

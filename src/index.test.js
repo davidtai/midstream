@@ -81,12 +81,7 @@ describe('midstream 1.x legacy tests', () => {
     src.b = 0
     src.c = 5
 
-    let ret
-    try {
-      await src.runAll()
-    } catch (err) {
-      ret = err
-    }
+    let ret = await src.runAll()
 
     expect(ret).toEqual(new Error('a not 1'))
     // all synchronous errors
@@ -268,17 +263,21 @@ describe('midstream 1.x legacy tests', () => {
 })
 
 describe('midstream 2.x api updates', () => {
-  const isEven = function(v) {
-    return new Promise((resolve, reject) => {
-      requestAnimationFrame(() => {
-        if (v % 2 === 0) {
-          resolve(v)
-          return
-        }
+  const isEven = async (v) => {
+    try {
+      return await new Promise((resolve, reject) => {
+        requestAnimationFrame(() => {
+          if (v % 2 === 0) {
+            resolve(v)
+            return
+          }
 
-        reject(new Error('a not even'))
+          reject(new Error('a not even'))
+        })
       })
-    })
+    } catch (e) {
+      throw e
+    }
   }
 
   it('should construct using the inline api', () => {
@@ -296,7 +295,7 @@ describe('midstream 2.x api updates', () => {
     expect(y).toEqual(2)
   })
 
-  fit('hooks should work and allow waiting', async () => {
+  it('hooks should work and allow waiting', async () => {
     let ms = midstream({
       x: [1],
       y: [2, isEven]
@@ -330,7 +329,7 @@ describe('midstream 2.x api updates', () => {
       y: [2, isEven]
     })
 
-    let { xY, setXY, y, setY, err, dst, waitAll } = ms
+    let { xY, setXY, y, setY, err, dst, wait } = ms
 
     expect(xY).toEqual(1)
     expect(y).toEqual(2)
@@ -350,6 +349,48 @@ describe('midstream 2.x api updates', () => {
 
     expect(dst['x.y']).toEqual(2)
     expect(dst.y).toEqual(4)
+  })
+
+  it('dst and err both work', async () => {
+    let err = {}
+    let dst = {}
+    let ms = midstream({
+      x: [1],
+      y: [2, isEven]
+    }, {
+      dst: (k, v) => { dst[k] = v },
+      err: (k, v) => { err[k] = v },
+    })
+
+    let { x, setX, y, setY, wait } = ms
+
+    expect(x).toEqual(1)
+    expect(y).toEqual(2)
+
+    setX(2)
+    setY(4)
+
+    await wait()
+
+    expect(dst.x).toEqual(2)
+    expect(dst.y).toEqual(4)
+
+    setX(1)
+    setY(3)
+
+    await wait()
+
+    expect(dst.x).toEqual(1)
+    expect(dst.y).toEqual(4)
+
+    expect(err.x).toBeUndefined()
+    expect(err.y).toBeDefined()
+
+    setY(4)
+
+    await wait()
+
+    expect(err.y).toBeUndefined()
   })
 })
 
