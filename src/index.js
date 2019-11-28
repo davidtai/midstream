@@ -19,7 +19,7 @@ if (!Promise.allSettled) {
 }
 
 class Source {
-  constructor(middleware, defaults, dst, err) {
+  constructor(middleware, defaults, dst, err, notify) {
     Object.defineProperties(this, {
       __middleware: {
         value: middleware || {},
@@ -42,12 +42,24 @@ class Source {
       __hooks: {
         value: {},
       },
+      __notify: {
+        value: notify,
+      },
     })
 
     if (isObject(this.__middleware)) {
       for (const prop of Object.keys(this.__middleware)) {
         if (isFunction(this.__middleware[prop])) {
           this.__middleware[prop] = [this.__middleware[prop]]
+          // support for [0, (v) => v] syntax for using the first value as the
+          // default
+        } else if (!Array.isArray(this.__middleware[prop])) {
+          this.__defaults[prop] = this.__middleware[prop]
+          this.__middleware[prop] = []
+        }
+
+        if (!isFunction(this.__middleware[prop][0])) {
+          this.__defaults[prop] = this.__middleware[prop].shift()
         }
 
         this.prop(prop, undefined, ...this.__middleware[prop])
@@ -84,7 +96,7 @@ class Source {
     }
 
     for (const m of mw) {
-      const newValue = await m(value, lastValue, src, mw)
+      const newValue = await m.call(src, value, lastValue, src, mw)
       lastValue = value
       value = newValue
     }
@@ -131,13 +143,40 @@ class Source {
     return src.__err[prop] = err
   }
 
+  // wait for all the middleware to complete all runs
+  async waitAll() {
+    let ps, res
+    do {
+      ps = []
+      for (let prop in this.__running) {
+        ps.push(this.__running[prop])
+      }
+
+      res = await Promise.all(ps)
+    } while(res.length > 0)
+  }
+
+  // wait for a specific middleware to complete the most current run
+  async wait(prop) {
+    if (!prop) {
+      return this.waitAll()
+    }
+
+    while(this.__running[prop]) {
+      await this.__running[prop]
+    }
+  }
+
   // run the middleware for a specific prop, or overwrite with value, return the value or error.
   // Use rethrow to rethrow the error. Returns the value assigned or error.
   async run(prop, value, ignoreErrors) {
+    if (!prop) {
+      return this.runAll()
+    }
+
     try {
       this.__waitingValues[prop] = value === undefined ? this[prop] : value
 
-      this.__running[prop] = true
       let ret
 
       // just do this at the same time, somewhat of a hack
@@ -147,16 +186,17 @@ class Source {
         const v = this.__waitingValues[prop]
 
         const p = Source.runMiddleware(this, v === undefined ? this[prop] : v, this.__middleware[prop])
+        this.__running[prop] = p
         delete this.__waitingValues[prop]
         const y = await p
 
         ret = await Source.updateDst(this, prop, y)
       }
 
-      this.__running[prop] = false
+      delete this.__running[prop]
       return ret
     } catch (err) {
-      this.__running[prop] = false
+      delete this.__running[prop]
       const e = await Source.updateErr(this, prop, err)
 
       if (ignoreErrors) {
@@ -274,18 +314,34 @@ class Source {
 }
 
 const midstream = (middleware, opts = {}) => {
-  const src = new Source(middleware, opts.defaults, opts.dst || opts.destination, opts.err || opts.errors)
+  const src = new Source(middleware, opts.defaults, opts.dst || opts.destination, opts.err || opts.errors, opts.notify)
 
-  return {
+  const ret = {
     src,
     dst: src.__dst,
     err: src.__err,
     hooks: src.__hooks,
-
+    runAll: () => src.runAll.apply(src, arguments),
+    run: () => src.run.apply(src, arguments),
+    waitAll: () => src.waitAll.apply(src, arguments),
+    wait: () => src.wait.apply(src, arguments),
     source: src,
     destination: src.__dst,
     errors: src.__err,
   }
+
+  for (let prop in src.__hooks) {
+    let hook = src.__hooks[prop]
+    let hookName = prop.split('.').map(x => x.charAt(0).toUpperCase() + x.substring(1)).join('')
+
+    Object.defineProperty(ret, hookName.charAt(0).toLowerCase() + hookName.substring(1), {
+      get: hook[0]
+    })
+
+    ret['set' + hookName] = hook[1]
+  }
+
+  return ret
 }
 
 export default midstream

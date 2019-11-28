@@ -23,7 +23,7 @@ const middleware = {
 }
 const dst = { a: 1, b: 2, c: 3 }
 
-describe('midstream', () => {
+describe('midstream 1.x legacy tests', () => {
   it('should construct', () => {
     let { src, err, dst, hooks } = midstream(middleware, {defaults})
 
@@ -47,7 +47,7 @@ describe('midstream', () => {
 
     expect(src).toEqual(_defaults)
     expect(err).toEqual({})
-    expect(dst).toEqual(dst)
+    expect(dst).toEqual(_defaults)
   })
 
   it('should runSettle and populate dst', async () => {
@@ -266,3 +266,90 @@ describe('midstream', () => {
     })
   })
 })
+
+describe('midstream 2.x api updates', () => {
+  const isEven = function(v) {
+    return new Promise((resolve, reject) => {
+      requestAnimationFrame(() => {
+        if (v % 2 === 0) {
+          resolve(v)
+          return
+        }
+
+        reject(new Error('a not even'))
+      })
+    })
+  }
+
+  it('should construct using the inline api', () => {
+    let ms = midstream({
+      x: [1],
+      y: [2, isEven]
+    })
+
+    let { x, setX, y, setY, src, dst, err } = ms
+
+    expect(src).toEqual({ x: 1, y: 2 })
+    expect(err).toEqual({})
+    expect(dst).toEqual({})
+    expect(x).toEqual(1)
+    expect(y).toEqual(2)
+  })
+
+  fit('hooks should work and allow waiting', async () => {
+    let ms = midstream({
+      x: [1],
+      y: [2, isEven]
+    })
+
+    let { x, setX, y, setY, err, dst, waitAll } = ms
+
+    expect(x).toEqual(1)
+    expect(y).toEqual(2)
+
+    setX(2)
+    setY(4)
+
+    await waitAll()
+
+    // old props should not be up to date
+    expect(x).toEqual(1)
+    expect(y).toEqual(2)
+
+    // props on ms should be up to date
+    expect(ms.x).toEqual(2)
+    expect(ms.y).toEqual(4)
+
+    expect(dst.x).toEqual(2)
+    expect(dst.y).toEqual(4)
+  })
+
+  it('hook period auto renaming should work', async () => {
+    let ms = midstream({
+      'x.y': [1],
+      y: [2, isEven]
+    })
+
+    let { xY, setXY, y, setY, err, dst, waitAll } = ms
+
+    expect(xY).toEqual(1)
+    expect(y).toEqual(2)
+
+    setXY(2)
+    setY(4)
+
+    await wait()
+
+    // old props should not be up to date
+    expect(xY).toEqual(1)
+    expect(y).toEqual(2)
+
+    // props on ms should be up to date
+    expect(ms.xY).toEqual(2)
+    expect(ms.y).toEqual(4)
+
+    expect(dst['x.y']).toEqual(2)
+    expect(dst.y).toEqual(4)
+  })
+})
+
