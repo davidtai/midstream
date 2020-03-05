@@ -1,6 +1,6 @@
 {
   "name": "midstream",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "main": "dist/midstream.cjs.js",
   "module": "dist/midstream.esm.js",
   "browser": "dist/midstream.umd.js",
