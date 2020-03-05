@@ -206,7 +206,7 @@ class Source {
       return ret
     } catch (err) {
       delete this.__running[prop]
-      const e = await Source.updateErr(this, prop, err)
+      const e = (await Source.updateErr(this, prop, err)) || err
 
       if (ignoreErrors) {
         return e
